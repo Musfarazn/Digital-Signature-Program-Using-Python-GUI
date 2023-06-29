@@ -1,0 +1,281 @@
+import tkinter as tk
+from tkinter import messagebox
+from tkinter import filedialog
+from PIL import Image, ImageTk
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.asymmetric import padding, rsa
+from cryptography.hazmat.backends import default_backend
+
+
+class GUI(tk.Tk):
+    def set_background(self, image_path):
+        background_image = Image.open(image_path)
+        background_photo = ImageTk.PhotoImage(background_image)
+        background_label = tk.Label(self, image=background_photo)
+        background_label.image = background_photo  # Simpan referensi agar gambar tidak hilang
+        background_label.place(x=0, y=0, relwidth=1, relheight=1)
+
+        # Mengatur ukuran jendela GUI
+        width = 800
+        height = 600
+        self.geometry(f"{width}x{height}")
+
+    def __init__(self):
+        super().__init__()
+        self.title("Digital Signature GUI")
+        self.set_background("C:/Users/ASUS/Downloads/gambar.jpg")
+        
+        # Membuat teks input
+        button = tk.Button(self, text="Inputan Untuk Pesan")
+        button.pack(pady=5)
+
+         # Membuat tombol untuk opsi pemilihan
+        options = ["Input Teks", "Input Gambar"]
+        self.selected_option = tk.StringVar()
+        self.selected_option.set(options[0])
+        option_menu = tk.OptionMenu(self, self.selected_option, *options)
+        option_menu.pack()
+        button = tk.Button(self, text="Next", command=self.show_selected_option)
+        button.pack(pady=5)
+
+    def text(self):
+        self.clear_widgets()
+        self.text_button = tk.Button(self, text="Masukan Pesan di Bawah Ini", fg="black", bg="white")
+        self.text_button.pack()
+        self.text_input = tk.Text(self, height=5, width=40)
+        self.text_input.pack(pady=5)
+        self.sign_button = tk.Button(self, text="Tandatangani Pesan", fg="black", bg="white", command=self.sign_message_text)
+        self.sign_button.pack(pady=5)
+
+    def sign_message_text(self):
+        pesan = self.text_input.get("1.0", "end-1c")
+        private_key, public_key = generate_key_pair()
+        tanda_tangan = sign_message(private_key, pesan)
+        tanda_tangan_hex = tanda_tangan.hex()
+        validasi = verify_tanda_tangan(public_key, pesan, tanda_tangan)
+
+        print("Private Key:", private_key)
+        print("Public Key:", public_key)
+        print("Pesan:", pesan)
+        print("Tanda_tangan (Hex):", tanda_tangan_hex)
+        print("Verifikasi:", validasi)
+
+    def image(self):
+        self.clear_widgets()
+        self.image_button = tk.Button(self, text="Pilih Gambar", fg="black", bg="white", command=self.select_image_file)
+        self.image_button.pack(pady=5)
+        self.image_label = tk.Label(self)
+        self.image_label.pack()
+        self.sign_button = tk.Button(self, text="Tandatangani Pesan", fg="black", bg="white", command=self.sign_message_image)
+        self.sign_button.pack(pady=5)
+
+    def select_image_file(self):
+        image_file_path = filedialog.askopenfilename(filetypes=[("Image files", "*.jpg;*.png")])
+        if image_file_path:
+            image = Image.open(image_file_path)
+            image = image.resize((500, 250))
+            photo = ImageTk.PhotoImage(image)
+            self.image_label.config(image=photo)
+            self.image_label.image = photo
+            self.selected_image_path = image_file_path
+
+    def sign_message_image(self):
+        if hasattr(self, "selected_image_path"):
+            image_file_path = self.selected_image_path
+            private_key, public_key = generate_key_pair()
+            tanda_tangan = sign_image(private_key, image_file_path)
+            tanda_tangan_hex = tanda_tangan.hex()
+            validasi = verify_tanda_tangan(public_key, image_file_path, tanda_tangan)
+
+            print("Private Key:", private_key)
+            print("Public Key:", public_key)
+            print("Pesan:", image_file_path)
+            print("Tanda_tangan (Hex):", tanda_tangan_hex)
+            print("Verifikasi:", validasi)
+        else:
+            messagebox.showerror("Error", "Silakan pilih file gambar terlebih dahulu!")
+
+    def clear_widgets(self):
+        if self.text_button:
+            self.text_button.pack_forget()
+            self.text_button = None
+        if self.text_input:
+            self.text_input.pack_forget()
+            self.text_input = None
+        if self.image_button:
+            self.image_button.pack_forget()
+            self.image_button = None
+        if self.image_label:
+            self.image_label.pack_forget()
+            self.image_label = None
+        if self.sign_button:
+            self.sign_button.pack_forget()
+            self.sign_button = None
+
+
+def generate_key_pair():
+    private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048, backend=default_backend())
+    public_key = private_key.public_key()
+    return private_key, public_key
+
+def sign_message(private_key, pesan):
+    tanda_tangan = private_key.sign(pesan.encode(), padding.PKCS1v15(), hashes.SHA256())
+    return tanda_tangan
+
+def sign_image(private_key, image_file_path):
+    with open(image_file_path, "rb") as file:
+        image_data = file.read()
+    tanda_tangan = private_key.sign(image_data, padding.PKCS1v15(), hashes.SHA256())
+    return tanda_tangan
+
+import tkinter as tk
+from tkinter import messagebox
+from tkinter import filedialog
+from PIL import Image, ImageTk
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.asymmetric import padding, rsa
+from cryptography.hazmat.backends import default_backend
+
+
+class GUI(tk.Tk):
+    def set_background(self, image_path):
+        background_image = Image.open(image_path)
+        background_photo = ImageTk.PhotoImage(background_image)
+        background_label = tk.Label(self, image=background_photo)
+        background_label.image = background_photo
+        background_label.place(x=0, y=0, relwidth=1, relheight=1)
+
+        width = 800
+        height = 600
+        self.geometry(f"{width}x{height}")
+
+    def __init__(self):
+        super().__init__()
+        self.title("Digital Signature GUI")
+        self.set_background("C:/Users/ASUS/Downloads/gambar.jpg")
+
+        button = tk.Button(self, text="Inputan Untuk Pesan", command=self.show_selected_option)
+        button.pack(pady=5)
+        options = ["Input Teks", "Input Gambar"]
+        self.selected_option = tk.StringVar()
+        self.selected_option.set(options[0])
+        option_menu = tk.OptionMenu(self, self.selected_option, *options)
+        option_menu.pack()
+        button = tk.Button(self, text="Next", command=self.show_selected_option)
+        button.pack(pady=5)
+
+        self.text_button = None
+        self.text_input = None
+        self.image_button = None
+        self.image_label = None
+        self.sign_button = None
+
+    def show_selected_option(self):
+        selected = self.selected_option.get()
+        if selected == "Input Teks":
+            self.text()
+        elif selected == "Input Gambar":
+            self.image()
+        else:
+            messagebox.showinfo("Pilihan Dipilih", f"Pilihan yang dipilih: {selected}")
+
+    def text(self):
+        self.clear_widgets()
+        self.text_button = tk.Button(self, text="Masukan Pesan di Bawah Ini", fg="black", bg="white")
+        self.text_button.pack()
+        self.text_input = tk.Text(self, height=5, width=40)
+        self.text_input.pack(pady=5)
+        self.sign_button = tk.Button(self, text="Tandatangani Pesan", fg="black", bg="white", command=self.sign_message_text)
+        self.sign_button.pack(pady=5)
+
+    def sign_message_text(self):
+        pesan = self.text_input.get("1.0", "end-1c")
+        private_key, public_key = generate_key_pair()
+        tanda_tangan = sign_message(private_key, pesan)
+        tanda_tangan_hex = tanda_tangan.hex()
+        validasi = verify_tanda_tangan(public_key, pesan, tanda_tangan)
+
+        print("Private Key:", private_key)
+        print("Public Key:", public_key)
+        print("Pesan:", pesan)
+        print("Tanda_tangan (Hex):", tanda_tangan_hex)
+        print("Verifikasi:", validasi)
+
+    def image(self):
+        self.clear_widgets()
+        self.image_button = tk.Button(self, text="Pilih Gambar", fg="black", bg="white", command=self.select_image_file)
+        self.image_button.pack(pady=5)
+        self.image_label = tk.Label(self)
+        self.image_label.pack()
+        self.sign_button = tk.Button(self, text="Tandatangani Pesan", fg="black", bg="white", command=self.sign_message_image)
+        self.sign_button.pack(pady=5)
+
+    def select_image_file(self):
+        image_file_path = filedialog.askopenfilename(filetypes=[("Image files", "*.jpg;*.png")])
+        if image_file_path:
+            image = Image.open(image_file_path)
+            image = image.resize((500, 250))
+            photo = ImageTk.PhotoImage(image)
+            self.image_label.config(image=photo)
+            self.image_label.image = photo
+            self.selected_image_path = image_file_path
+
+    def sign_message_image(self):
+        if hasattr(self, "selected_image_path"):
+            image_file_path = self.selected_image_path
+            private_key, public_key = generate_key_pair()
+            tanda_tangan = sign_image(private_key, image_file_path)
+            tanda_tangan_hex = tanda_tangan.hex()
+            validasi = verify_tanda_tangan(public_key, image_file_path, tanda_tangan)
+
+            print("Private Key:", private_key)
+            print("Public Key:", public_key)
+            print("Pesan:", image_file_path)
+            print("Tanda_tangan (Hex):", tanda_tangan_hex)
+            print("Verifikasi:", validasi)
+        else:
+            messagebox.showerror("Error", "Silakan pilih file gambar terlebih dahulu!")
+
+    def clear_widgets(self):
+        if self.text_button:
+            self.text_button.pack_forget()
+            self.text_button = None
+        if self.text_input:
+            self.text_input.pack_forget()
+            self.text_input = None
+        if self.image_button:
+            self.image_button.pack_forget()
+            self.image_button = None
+        if self.image_label:
+            self.image_label.pack_forget()
+            self.image_label = None
+        if self.sign_button:
+            self.sign_button.pack_forget()
+            self.sign_button = None
+
+
+def generate_key_pair():
+    private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048, backend=default_backend())
+    public_key = private_key.public_key()
+    return private_key, public_key
+
+def sign_message(private_key, pesan):
+    tanda_tangan = private_key.sign(pesan.encode(), padding.PKCS1v15(), hashes.SHA256())
+    return tanda_tangan
+
+def sign_image(private_key, image_file_path):
+    with open(image_file_path, "rb") as file:
+        image_data = file.read()
+        tanda_tangan = private_key.sign(image_data, padding.PKCS1v15(), hashes.SHA256())
+    return tanda_tangan
+
+def verify_tanda_tangan(public_key, pesan, tanda_tangan):
+    try:
+        public_key.verify(tanda_tangan, pesan.encode(), padding.PKCS1v15(), hashes.SHA256())
+        return True
+    except:
+        return False
+
+
+gui = GUI()
+gui.mainloop()
